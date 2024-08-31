@@ -1,0 +1,6 @@
+@QA_Tick_Tack_Toe_API_HostAddress = http://localhost:5105
+
+GET {{QA_Tick_Tack_Toe_API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
