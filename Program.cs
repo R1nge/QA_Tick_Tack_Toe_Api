@@ -21,6 +21,15 @@ var summaries = new[]
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
 
+app.MapGet("/randomteam", () =>
+    {
+        var randomTeam = Enum.GetValues(typeof(Team))
+            .GetValue(Random.Shared.Next(Enum.GetValues(typeof(Team)).Length))!;
+        return randomTeam;
+    })
+    .WithName("GetRandomTeam")
+    .WithOpenApi();
+
 app.MapGet("/weatherforecast", () =>
     {
         var forecast = Enumerable.Range(1, 5).Select(index =>
@@ -41,4 +50,11 @@ app.Run();
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+}
+
+enum Team
+{
+    None,
+    X,
+    Y
 }
