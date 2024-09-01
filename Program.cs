@@ -17,14 +17,11 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 var board = new Team[3, 3];
+Team currentTeam = Team.O;
+Team nextTeam = Team.X;
 
-app.MapPost("/maketurn{x:int},{y:int},{team:int}", async (HttpContext context, int x, int y, int team) =>
+app.MapPost("/maketurn{x:int},{y:int}", async (HttpContext context, int x, int y) =>
     {
-        if (team <= 0 || team > Enum.GetNames(typeof(Team)).Length)
-        {
-            return context.Response.WriteAsJsonAsync(new { error = "Invalid team", error_code = "400 Bad Request" });
-        }
-
         if (x < 0 || x > 2 || y < 0 || y > 2)
         {
             return context.Response.WriteAsJsonAsync(new
@@ -37,7 +34,29 @@ app.MapPost("/maketurn{x:int},{y:int},{team:int}", async (HttpContext context, i
                 { error = "Invalid move, cell already taken", error_code = "400 Bad Request" });
         }
 
-        board[x, y] = (Team)team;
+        board[x, y] = currentTeam;
+
+        if (CheckWin(board) || CheckDraw(board))
+        {
+            var boardList2 = ConvertBoardToList(board);
+            return context.Response.WriteAsJsonAsync(boardList2);
+        }
+        
+        if (currentTeam == Team.None)
+        {
+            currentTeam = Team.O;
+            nextTeam = Team.X;
+        }
+        else if (currentTeam == Team.O)
+        {
+            currentTeam = Team.X;
+            nextTeam = Team.O;
+        }
+        else if (currentTeam == Team.X)
+        {
+            currentTeam = Team.O;
+            nextTeam = Team.X;
+        }
 
         var boardList = ConvertBoardToList(board);
         return context.Response.WriteAsJsonAsync(boardList);
@@ -45,6 +64,55 @@ app.MapPost("/maketurn{x:int},{y:int},{team:int}", async (HttpContext context, i
     .WithName("MakeTurn")
     .WithDescription("Make a turn on the board")
     .WithOpenApi();
+
+static bool CheckWin(Team[,] board)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        if (board[i, 0] == board[i, 1] && board[i, 1] == board[i, 2] && board[i, 0] != Team.None)
+        {
+            return true;
+        }
+    }
+
+    // Check columns
+    for (int i = 0; i < 3; i++)
+    {
+        if (board[0, i] == board[1, i] && board[1, i] == board[2, i] && board[0, i] != Team.None)
+        {
+            return true;
+        }
+    }
+
+    // Check diagonals
+    if (board[0, 0] == board[1, 1] && board[1, 1] == board[2, 2] && board[0, 0] != Team.None)
+    {
+        return true;
+    }
+
+    if (board[0, 2] == board[1, 1] && board[1, 1] == board[2, 0] && board[0, 2] != Team.None)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+static bool CheckDraw(Team[,] board)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            if (board[i, j] == Team.None)
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
 
 static List<List<Team>> ConvertBoardToList(Team[,] board)
 {
@@ -80,11 +148,15 @@ app.MapGet("/resetboard", context =>
                 board[i, j] = Team.None;
             }
         }
-        
+
+        currentTeam = Team.O;
+        nextTeam = Team.X;
         var boardList = ConvertBoardToList(board);
         return context.Response.WriteAsJsonAsync(boardList);
     }
 );
+
+app.MapGet("/getlastteam", context => { return context.Response.WriteAsJsonAsync(currentTeam); });
 
 app.Run();
 
@@ -100,6 +172,6 @@ public class MakeTurnRequest
 enum Team : byte
 {
     None = 0,
-    X = 1,
-    O = 2
+    O = 1,
+    X = 2
 }
