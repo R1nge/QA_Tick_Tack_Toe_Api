@@ -67,14 +67,13 @@ static List<List<Team>> ConvertBoardToList(Team[,] board)
     return result;
 }
 
-// app.MapGet("/randomteam", () =>
-//     {
-//         var randomTeam = Enum.GetValues(typeof(Team))
-//             .GetValue(Random.Shared.Next(Enum.GetValues(typeof(Team)).Length))!;
-//         return randomTeam;
-//     })
-//     .WithName("GetRandomTeam")
-//     .WithOpenApi();
+app.MapGet("/getboard", () =>
+    {
+        var boardList = ConvertBoardToList(board);
+        return boardList;
+    })
+    .WithName("GetRandomTeam")
+    .WithOpenApi();
 
 app.MapGet("/weatherforecast", () =>
     {
