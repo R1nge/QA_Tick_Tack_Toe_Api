@@ -1,6 +1,3 @@
-using System.Text.Json;
-using Microsoft.AspNetCore.Mvc;
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -19,32 +16,29 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
 var board = new Team[3, 3];
 
 app.MapPost("/maketurn{x:int},{y:int},{team:int}", async (HttpContext context, int x, int y, int team) =>
     {
         if (team <= 0 || team > Enum.GetNames(typeof(Team)).Length)
         {
-            return context.Response.WriteAsJsonAsync(new { error = "Invalid team", error_code = "400 Bad Request" });    
+            return context.Response.WriteAsJsonAsync(new { error = "Invalid team", error_code = "400 Bad Request" });
         }
-        
+
         if (x < 0 || x > 2 || y < 0 || y > 2)
         {
-            return context.Response.WriteAsJsonAsync(new { error = "Invalid coordinates", error_code = "400 Bad Request" });    
+            return context.Response.WriteAsJsonAsync(new
+                { error = "Invalid coordinates", error_code = "400 Bad Request" });
         }
-        
+
         if (board[x, y] != Team.None)
         {
-            return context.Response.WriteAsJsonAsync(new { error = "Invalid move, cell already taken", error_code = "400 Bad Request" });    
+            return context.Response.WriteAsJsonAsync(new
+                { error = "Invalid move, cell already taken", error_code = "400 Bad Request" });
         }
-        
+
         board[x, y] = (Team)team;
-        
+
         var boardList = ConvertBoardToList(board);
         return context.Response.WriteAsJsonAsync(boardList);
     })
@@ -62,8 +56,10 @@ static List<List<Team>> ConvertBoardToList(Team[,] board)
         {
             row.Add(board[i, j]);
         }
+
         result.Add(row);
     }
+
     return result;
 }
 
@@ -75,27 +71,22 @@ app.MapGet("/getboard", () =>
     .WithName("GetRandomTeam")
     .WithOpenApi();
 
-app.MapGet("/weatherforecast", () =>
+app.MapGet("/resetboard", context =>
     {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
-    })
-    .WithName("GetWeatherForecast")
-    .WithOpenApi();
+        for (int i = 0; i < board.GetLength(0); i++)
+        {
+            for (int j = 0; j < board.GetLength(1); j++)
+            {
+                board[i, j] = Team.None;
+            }
+        }
+        
+        var boardList = ConvertBoardToList(board);
+        return context.Response.WriteAsJsonAsync(boardList);
+    }
+);
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
 
 [Serializable]
 public class MakeTurnRequest
@@ -106,9 +97,9 @@ public class MakeTurnRequest
 }
 
 [Serializable]
-enum Team
+enum Team : byte
 {
-    None,
-    X,
-    Y
+    None = 0,
+    X = 1,
+    O = 2
 }
