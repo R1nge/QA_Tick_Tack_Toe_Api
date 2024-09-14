@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.HttpOverrides;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -7,14 +9,24 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseSwagger();
+app.UseSwaggerUI();
+
+if (!app.Environment.IsDevelopment())
+{
+    // app.UseHttpsRedirection();
+}
+
 
 var board = new Team[3, 3];
 Team currentTeam = Team.O;
@@ -22,6 +34,7 @@ Team nextTeam = Team.X;
 
 app.MapPost("/maketurn{x:int},{y:int}", async (HttpContext context, int x, int y) =>
     {
+        Console.WriteLine("Making turn at " + x + " " + y);
         if (x < 0 || x > 2 || y < 0 || y > 2)
         {
             return context.Response.WriteAsJsonAsync(new
@@ -41,7 +54,7 @@ app.MapPost("/maketurn{x:int},{y:int}", async (HttpContext context, int x, int y
             var boardList2 = ConvertBoardToList(board);
             return context.Response.WriteAsJsonAsync(boardList2);
         }
-        
+
         if (currentTeam == Team.None)
         {
             currentTeam = Team.O;
