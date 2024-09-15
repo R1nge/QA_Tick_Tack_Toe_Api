@@ -196,6 +196,7 @@ app.MapGet("/resetboard", async (HttpContext context) =>
 
             currentTeam = Team.O;
             nextTeam = Team.X;
+            lastTurn = new LastTurn(-1, -1);
             var boardList = ConvertBoardToList(board);
             return context.Response.WriteAsJsonAsync(boardList);
         }
