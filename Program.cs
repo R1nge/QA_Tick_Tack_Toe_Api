@@ -21,6 +21,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseSwagger();
 app.UseSwaggerUI();
+app.UseRouting();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -35,44 +36,67 @@ Team nextTeam = Team.X;
 app.MapPost("/maketurn{x:int},{y:int}", async (HttpContext context, int x, int y) =>
     {
         Console.WriteLine("Making turn at " + x + " " + y);
-        if (x < 0 || x > 2 || y < 0 || y > 2)
+
+        object response = null;
+
+        if ((x == 6 && y == 9) || (x == 69 && y == 69) || (x == 69) || (y == 69))
         {
-            return context.Response.WriteAsJsonAsync(new
-                { error = "Invalid coordinates", error_code = "400 Bad Request" });
+            response = new { error = "Oh, my", error_code = "69" };
+        }
+        else if ((x == 666) || (y == 666))
+        {
+            response = new { error = "Hallelujah", error_code = "666" };
+        }
+        else if (x == 999 || y == 999)
+        {
+            response = new { error = "Devil", error_code = "999" };
+        }
+        else if ((x == 1337 || y == 1337) || (x == 13 && y == 37))
+        {
+            response = new { error = "Leet", error_code = "1337" };
+        }
+        else if (x < 0 || x > 2 || y < 0 || y > 2)
+        {
+            response = new { error = "Invalid coordinates", error_code = "400 Bad Request" };
+        }
+        else if (board[x, y] != Team.None)
+        {
+            response = new { error = "Invalid move, cell already taken", error_code = "400 Bad Request" };
+        }
+        else
+        {
+            board[x, y] = currentTeam;
+
+            if (CheckWin(board) || CheckDraw(board))
+            {
+                var boardList2 = ConvertBoardToList(board);
+                response = boardList2;
+            }
+            else
+            {
+                if (currentTeam == Team.None)
+                {
+                    currentTeam = Team.O;
+                    nextTeam = Team.X;
+                }
+                else if (currentTeam == Team.O)
+                {
+                    currentTeam = Team.X;
+                    nextTeam = Team.O;
+                }
+                else if (currentTeam == Team.X)
+                {
+                    currentTeam = Team.O;
+                    nextTeam = Team.X;
+                }
+
+                var boardList = ConvertBoardToList(board);
+                response = boardList;
+            }
         }
 
-        if (board[x, y] != Team.None)
-        {
-            return context.Response.WriteAsJsonAsync(new
-                { error = "Invalid move, cell already taken", error_code = "400 Bad Request" });
-        }
 
-        board[x, y] = currentTeam;
-
-        if (CheckWin(board) || CheckDraw(board))
-        {
-            var boardList2 = ConvertBoardToList(board);
-            return context.Response.WriteAsJsonAsync(boardList2);
-        }
-
-        if (currentTeam == Team.None)
-        {
-            currentTeam = Team.O;
-            nextTeam = Team.X;
-        }
-        else if (currentTeam == Team.O)
-        {
-            currentTeam = Team.X;
-            nextTeam = Team.O;
-        }
-        else if (currentTeam == Team.X)
-        {
-            currentTeam = Team.O;
-            nextTeam = Team.X;
-        }
-
-        var boardList = ConvertBoardToList(board);
-        return context.Response.WriteAsJsonAsync(boardList);
+        await context.Response.WriteAsJsonAsync(response);
     })
     .WithName("MakeTurn")
     .WithDescription("Make a turn on the board")
@@ -150,24 +174,28 @@ app.MapGet("/getboard", () =>
         return boardList;
     })
     .WithName("GetRandomTeam")
+    .WithDescription("Get current board")
     .WithOpenApi();
 
-app.MapGet("/resetboard", context =>
-    {
-        for (int i = 0; i < board.GetLength(0); i++)
+app.MapGet("/resetboard", async (HttpContext context) =>
         {
-            for (int j = 0; j < board.GetLength(1); j++)
+            for (int i = 0; i < board.GetLength(0); i++)
             {
-                board[i, j] = Team.None;
+                for (int j = 0; j < board.GetLength(1); j++)
+                {
+                    board[i, j] = Team.None;
+                }
             }
-        }
 
-        currentTeam = Team.O;
-        nextTeam = Team.X;
-        var boardList = ConvertBoardToList(board);
-        return context.Response.WriteAsJsonAsync(boardList);
-    }
-);
+            currentTeam = Team.O;
+            nextTeam = Team.X;
+            var boardList = ConvertBoardToList(board);
+            return context.Response.WriteAsJsonAsync(boardList);
+        }
+    )
+    .WithName("ResetBoard")
+    .WithDescription("Reset the board")
+    .WithOpenApi();
 
 app.MapGet("/getlastteam", context => { return context.Response.WriteAsJsonAsync(currentTeam); });
 
