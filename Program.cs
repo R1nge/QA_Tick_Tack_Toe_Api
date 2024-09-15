@@ -32,6 +32,8 @@ if (!app.Environment.IsDevelopment())
 var board = new Team[3, 3];
 Team currentTeam = Team.O;
 Team nextTeam = Team.X;
+var lastTurn = new LastTurn(-1, -1);
+
 
 app.MapPost("/maketurn{x:int},{y:int}", async (HttpContext context, int x, int y) =>
     {
@@ -42,18 +44,22 @@ app.MapPost("/maketurn{x:int},{y:int}", async (HttpContext context, int x, int y
         if ((x == 6 && y == 9) || (x == 69 && y == 69) || (x == 69) || (y == 69))
         {
             response = new { error = "Oh, my", error_code = "69" };
+            lastTurn = new LastTurn(x, y);
         }
         else if ((x == 666) || (y == 666))
         {
             response = new { error = "Hallelujah", error_code = "666" };
+            lastTurn = new LastTurn(x, y);
         }
         else if (x == 999 || y == 999)
         {
             response = new { error = "Devil", error_code = "999" };
+            lastTurn = new LastTurn(x, y);
         }
         else if ((x == 1337 || y == 1337) || (x == 13 && y == 37))
         {
             response = new { error = "Leet", error_code = "1337" };
+            lastTurn = new LastTurn(x, y);
         }
         else if (x < 0 || x > 2 || y < 0 || y > 2)
         {
@@ -66,6 +72,7 @@ app.MapPost("/maketurn{x:int},{y:int}", async (HttpContext context, int x, int y
         else
         {
             board[x, y] = currentTeam;
+            lastTurn = new LastTurn(x, y);
 
             if (CheckWin(board) || CheckDraw(board))
             {
@@ -98,7 +105,7 @@ app.MapPost("/maketurn{x:int},{y:int}", async (HttpContext context, int x, int y
 
         await context.Response.WriteAsJsonAsync(response);
     })
-    .WithName("MakeTurn")
+    .WithName("Make Turn")
     .WithDescription("Make a turn on the board")
     .WithOpenApi();
 
@@ -173,7 +180,7 @@ app.MapGet("/getboard", () =>
         var boardList = ConvertBoardToList(board);
         return boardList;
     })
-    .WithName("GetRandomTeam")
+    .WithName("Get Board")
     .WithDescription("Get current board")
     .WithOpenApi();
 
@@ -193,11 +200,19 @@ app.MapGet("/resetboard", async (HttpContext context) =>
             return context.Response.WriteAsJsonAsync(boardList);
         }
     )
-    .WithName("ResetBoard")
+    .WithName("Reset Board")
     .WithDescription("Reset the board")
     .WithOpenApi();
 
-app.MapGet("/getlastteam", context => { return context.Response.WriteAsJsonAsync(currentTeam); });
+app.MapGet("/getlastteam", context => { return context.Response.WriteAsJsonAsync(currentTeam); })
+    .WithName("Get Last Team")
+    .WithDescription("Returns the last team")
+    .WithOpenApi();
+
+app.MapGet("/getlastturn", context => { return context.Response.WriteAsJsonAsync(lastTurn); })
+    .WithName("Get Last Turn")
+    .WithDescription("Returns the last turn")
+    .WithOpenApi();
 
 app.Run();
 
@@ -207,6 +222,19 @@ public class MakeTurnRequest
     public int X { get; set; }
     public int Y { get; set; }
     public int Team { get; set; }
+}
+
+[Serializable]
+public class LastTurn
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+
+    public LastTurn(int x, int y)
+    {
+        X = x;
+        Y = y;
+    }
 }
 
 [Serializable]
